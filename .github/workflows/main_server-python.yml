@@ -30,15 +30,16 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
         
+      - name: Zip artifact for deployment
+        run: zip release.zip ./*
+
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
       
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v2
         with:
           name: python-app
-          path: |
-            . 
-            !venv/
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -52,7 +53,9 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: python-app
-          path: .
+          
+      - name: unzip artifact for deployment
+        run: unzip release.zip
           
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
@@ -61,3 +64,4 @@ jobs:
           app-name: 'server-python'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_8AA53627BA3B44F8821CF264211BB7FF }}
+          package: .
