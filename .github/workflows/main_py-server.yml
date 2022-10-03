@@ -1,0 +1,51 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy container app to Azure Web App - py-server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Log in to registry
+      uses: docker/login-action@v1
+      with:
+        registry: https://mcr.microsoft.com/
+        username: ${{ secrets.AzureAppService_ContainerUsername_2bd8aa061c8841c6bcd212fab6de01fb }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_f21ec2330856487fa3d6edd7454b78a7 }}
+
+    - name: Build and push container image to registry
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        tags: mcr.microsoft.com/${{ secrets.AzureAppService_ContainerUsername_2bd8aa061c8841c6bcd212fab6de01fb }}/appsvc/staticsite:${{ github.sha }}
+        file: ./Dockerfile
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    - name: Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'py-server'
+        slot-name: 'production'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_c6bf75f54c87483ab5bf8e0d8b0f93ab }}
+        images: 'mcr.microsoft.com/${{ secrets.AzureAppService_ContainerUsername_2bd8aa061c8841c6bcd212fab6de01fb }}/appsvc/staticsite:${{ github.sha }}'
